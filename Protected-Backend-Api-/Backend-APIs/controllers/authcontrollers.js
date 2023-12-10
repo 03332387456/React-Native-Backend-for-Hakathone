@@ -9,8 +9,8 @@ const AuthController = {
 
   signUp: async (req, res) => {
     try {
-      let { userName, password, contact } = req.body;
-      let obj = { userName, password, contact };
+      let { userName, password, contact , userType } = req.body;
+      let obj = { userName, password, contact ,userType };
       let errArr = [];
 
       if (!obj.userName) {
@@ -81,6 +81,8 @@ const AuthController = {
     } catch (error) { }
   },
 
+
+  // Protected
   protected: (req, res, next) => {
     let token = req.headers.authorization?.split(" ")[1]
     if (!token) {
@@ -99,8 +101,52 @@ const AuthController = {
       })
     }
   },
+ 
+  // CheckAuth
+  CheckAuth: async (req, res) => {
+    try {
+      let token = req.headers.authorization.replace("Bearer ", "");
+      jwt.verify(token, process.env.SECRET_KEY, (err, decode) => {
+        if (err) {
+          res.status(401).send(SendResponse(false, "Unauthorized"));
+        } else {
+          res.status(200).send(SendResponse(true, "Authorized"));
+        }
+      });
+    } catch (error) {
+      res.status(500).send(SendResponse(false, "Internal Server Error", error));
+    }
+  },
+  
+  // get users
+  getUsers: async (req, res) => {
+  try {
+    let result = await UserModel.find();
+    if (result.length === 0) {
+      res.status(404).send(SendResponse(false, "Data not Found", null));
+    } else {
+      res.status(200).send(SendResponse(true, "Data Found Successfully", result));
+    }
+  } catch (error) {
+    res.status(500).send(SendResponse(false, "Internal server Error", error));
+  }
+},
 
+//delete All users
+delAllUsers: (async (req, res) => {
+  try {
+      const result = await UserModel.deleteMany({});
+      if (result) {
+          res.status(200).send(SendResponse(true, "record deleted Sucessfully", result))
+      } else {
+          res.status(404).send(SendResponse(false, "record not found"))
+      }
+  } catch (error) {
+      res.status(500).send(SendResponse(false, "internal server error", error))
+  }
+}),
 
+  // Admin Protected
   Adminprotected: (req, res, next) => {
     let token = req.headers.authorization?.split(" ")[1]
     if (!token) {
